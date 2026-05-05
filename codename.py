@@ -564,19 +564,13 @@ def home():
             🔵 Detetive Azul
         </button>
 
-        <br><br>
-
         <button class="button-ui button-vermelho" onclick="entrar('detetive', 'vermelho')">
             🔴 Detetive Vermelho
         </button>
 
-        <br><br>
-
         <button class="button-ui button-espiao" onclick="entrar('espiao', '')">
             🕵️ Espião
-        </button>
-                                  
-        <br><br>
+        </button>                          
 
         <button class="button-ui button-admin" onclick="window.location.href='/admin'">
             🔒 Admin
