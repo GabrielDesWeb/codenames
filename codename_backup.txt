@@ -303,6 +303,16 @@ function fecharModal() {
     document.getElementById("modalOverlay").classList.remove("active");
 }
 
+function acao(tipo) {
+    fetch('/admin_acao', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'tipo=' + tipo + '&senha={{senha}}'
+    }).then(() => {
+        abrirModal("✅ Sucesso", "Ação executada!");
+    });
+}
+
 function verificarResetGeral() {
     fetch('/status_sala')
         .then(res => res.json())
@@ -341,6 +351,14 @@ function atualizarTempo() {
                 }, 500);
 
                 ultimoTurno = data.turno;
+            }
+
+            document.body.classList.remove("body-turno-azul", "body-turno-vermelho");
+
+            if (data.turno === "azul") {
+                document.body.classList.add("body-turno-azul");
+            } else if (data.turno === "vermelho") {
+                document.body.classList.add("body-turno-vermelho");
             }
 
             const timerEl = document.getElementById("timer");
@@ -552,27 +570,19 @@ def home():
 
         <input id="nomeInput" class="input-ui" placeholder="Digite seu nome">
 
-        <button class="button-ui" onclick="entrar('detetive', 'azul')">
+        <button class="button-ui button-azul" onclick="entrar('detetive', 'azul')">
             🔵 Detetive Azul
         </button>
 
-        <br><br>
-
-        <button class="button-ui button-danger" onclick="entrar('detetive', 'vermelho')">
+        <button class="button-ui button-vermelho" onclick="entrar('detetive', 'vermelho')">
             🔴 Detetive Vermelho
         </button>
 
-        <br><br>
-
-        <button class="button-ui button-alt" onclick="entrar('espiao', '')">
+        <button class="button-ui button-espiao" onclick="entrar('espiao', '')">
             🕵️ Espião
-        </button>
-                                  
-        <br><br>
+        </button>                          
 
-        <button class="button-ui button-admin" onclick="window.location.href='/admin'">
-            🔒 Admin
-        </button>
+        <button class="button-ui btn-admin" onclick="irAdmin()">🔒 Admin</button>
     </div>
 </div>
 
@@ -711,15 +721,15 @@ def jokenpo_tela():
                                           
         <br><br>
 
-        <button class="button-ui" onclick="jogar('pedra')">✊🏻 Pedra</button>
+        <button class="button-ui btn-pedra" onclick="jogar('pedra')">✊🏻 Pedra</button>    
                                           
         <br><br>
         
-        <button class="button-ui button-alt" onclick="jogar('papel')">🖐🏻 Papel</button>
+        <button class="button-ui btn-papel" onclick="jogar('papel')">🖐🏻 Papel</button>
                                           
         <br><br>
         
-        <button class="button-ui button-danger" onclick="jogar('tesoura')">✌🏻 Tesoura</button>
+        <button class="button-ui btn-tesoura" onclick="jogar('tesoura')">✌🏻 Tesoura</button>
     </div>
 </div>
 
@@ -844,7 +854,7 @@ def resultado():
             {% endif %}
         </h3>
 
-        <button class="button-ui" onclick="irJogo()">Ir para o jogo</button>
+        <button class="button-ui btn-confirmar" onclick="irJogo()">🚀 Ir para o jogo</button>
     </div>
 </div>
 
@@ -964,7 +974,7 @@ def admin():
     <div class="card-ui">
         <h2>🔒 Admin</h2>
 
-        <p style="color:red;">Senha incorreta</p>
+        <p class="erro-login">❌ Senha incorreta</p>
 
         <form method="post">
             <input class="input-ui" type="password" name="senha" placeholder="Senha">
@@ -991,7 +1001,7 @@ def admin():
 
         <form method="post">
             <input class="input-ui" type="password" name="senha" placeholder="Senha">
-            <button class="button-ui">Entrar</button>
+            <button class="button-ui btn-admin-login">🔓 Entrar</button>
         </form>
     </div>
 </div>
@@ -1024,15 +1034,10 @@ def admin_painel():
                                           
         <br><br>
 
-        <button class="button-ui" onclick="acao('reset')">🔄 Reset</button>
-        
-        <br><br>
-        
-        <button class="button-ui button-alt" onclick="acao('tempo')">⏱️ Timer</button>
-                                          
-        <br><br>
-        
-        <button class="button-ui button-danger" onclick="acao('inicio')">🏠 Reset Geral</button>
+        <button class="button-ui btn-reset" onclick="acao('reset')">🔄 Reset</button>
+        <button class="button-ui btn-tempo" onclick="acao('tempo')">⏱️ Timer</button>
+        <button class="button-ui btn-reset-geral" onclick="acao('inicio')">🏠 Reset Geral</button>
+                                  
     </div>
 </div>
 
@@ -1042,10 +1047,9 @@ function acao(tipo) {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'tipo=' + tipo + '&senha={{senha}}'
-    }).then(() => {
-        alert("Ação executada!");
-    });
-}
+        .then(() => {
+            abrirModal("✅ Sucesso", "Ação executada!");
+        });
 </script>
 
 </body>
