@@ -604,6 +604,8 @@ def jokenpo_tela():
         <h2>🎲 Pedra, Papel ou Tesoura</h2>
 
         <p>Escolha sua jogada</p>
+                                          
+        <br><br>
 
         <button class="button-ui" onclick="jogar('pedra')">✊🏻 Pedra</button>
                                           
@@ -915,6 +917,8 @@ def admin_painel():
 
         <p>Espiões: {{espioes}}</p>
         <p>Mensagens: {{chat}}</p>
+                                          
+        <br><br>
 
         <button class="button-ui" onclick="acao('reset')">🔄 Reset</button>
         
