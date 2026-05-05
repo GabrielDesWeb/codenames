@@ -43,12 +43,39 @@ palpites_rodada = 0
 # TEMAS
 # =========================
 temas = {
-    "futebol": [
-        "Gol","VAR","Escanteio","Cartão","Impedimento","Neymar","Messi","CR7",
-        "Mbappé","Ronaldinho","Chute","Drible","Passe","Cabeceio","Falta",
-        "Estádio","Torcida","Camisa","Chuteira","Banco","Goleiro","Zagueiro",
-        "Meio-campo","Atacante","Juiz","Pênalti","Lateral","Técnico","Reserva",
-        "Final","Copa","Liga","Clássico","Derby","Apito","Rede","Barreira"
+    "geral": [
+        # OBJETOS
+        "Mesa","Cadeira","Janela","Porta","Espelho","Relógio","Chave","Copo","Livro","Caneta",
+
+        # TECNOLOGIA
+        "Computador","Celular","Internet","Código","Robô","Software","Hardware","Servidor","Banco","Dados",
+
+        # NATUREZA
+        "Árvore","Rio","Montanha","Sol","Lua","Estrela","Floresta","Deserto","Mar","Chuva",
+
+        # COMIDA
+        "Pizza","Hambúrguer","Arroz","Feijão","Chocolate","Café","Leite","Pão","Macarrão","Sorvete",
+
+        # PROFISSÕES
+        "Médico","Professor","Engenheiro","Policial","Advogado","Programador","Designer","Chef","Piloto","Ator",
+
+        # LUGARES
+        "Brasil","Paris","Japão","Praia","Escola","Hospital","Aeroporto","Restaurante","Cinema","Estádio",
+
+        # CULTURA / ENTRETENIMENTO
+        "Filme","Série","Música","Arte","Teatro","Livro","Jogo","Dança","Show","Festival",
+
+        # TRANSPORTE
+        "Carro","Moto","Avião","Navio","Bicicleta","Trem","Ônibus","Helicóptero",
+
+        # ESPORTE (mantém um pouco do futebol também)
+        "Gol","Passe","Chute","Time","Torcida","Copa","Juiz","Camisa",
+
+        # COISAS ABSTRATAS (ESSENCIAL PRA FICAR BOM)
+        "Tempo","Amor","Guerra","Poder","Vida","Morte","Energia","Força","Velocidade","Ideia",
+
+        # COISAS ALEATÓRIAS BOAS PRA JOGO
+        "Fogo","Gelo","Pedra","Metal","Vidro","Plástico","Som","Luz","Sombra","Cor"
     ]
 }
 
@@ -56,7 +83,7 @@ temas = {
 # GERAR JOGO
 # =========================
 def gerar_jogo():
-    palavras = random.sample(temas["futebol"], 25)
+    palavras = random.sample(temas["geral"], 25)
 
     mapa = (
         (["blue"] * 8) +
