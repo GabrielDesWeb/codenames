@@ -38,17 +38,68 @@ vencedor_jogo = None
 
 limite_palpites = 0
 palpites_rodada = 0
+palavras_usadas = set()
+historico_partidas = []
+
 
 # =========================
 # TEMAS
 # =========================
 temas = {
-    "futebol": [
-        "Gol","VAR","Escanteio","Cartão","Impedimento","Neymar","Messi","CR7",
-        "Mbappé","Ronaldinho","Chute","Drible","Passe","Cabeceio","Falta",
-        "Estádio","Torcida","Camisa","Chuteira","Banco","Goleiro","Zagueiro",
-        "Meio-campo","Atacante","Juiz","Pênalti","Lateral","Técnico","Reserva",
-        "Final","Copa","Liga","Clássico","Derby","Apito","Rede","Barreira"
+
+    "objetos": [
+        "Mesa","Cadeira","Janela","Porta","Espelho","Relógio","Chave","Copo","Livro","Caneta",
+        "Telefone","Lâmpada","Faca","Garfo","Colher","Caixa","Bolsa","Mochila","Câmera","Controle"
+    ],
+
+    "tecnologia": [
+        "Computador","Celular","Internet","Código","Robô","Software","Hardware","Servidor","Banco","Dados",
+        "Senha","Rede","Tela","Sistema","Aplicativo","Bug","Download","Upload","Arquivo","Processador"
+    ],
+
+    "natureza": [
+        "Árvore","Rio","Montanha","Sol","Lua","Estrela","Floresta","Deserto","Mar","Chuva",
+        "Vento","Tempestade","Neve","Gelo","Pedra","Areia","Lago","Céu","Nuvem","Raiz"
+    ],
+
+    "comida": [
+        "Pizza","Hambúrguer","Arroz","Feijão","Chocolate","Café","Leite","Pão","Macarrão","Sorvete",
+        "Carne","Frango","Peixe","Salada","Ovo","Queijo","Batata","Doce","Bolo","Suco"
+    ],
+
+    "profissoes": [
+        "Médico","Professor","Engenheiro","Policial","Advogado","Programador","Designer","Chef","Piloto","Ator",
+        "Cantor","Jogador","Motorista","Mecânico","Enfermeiro","Juiz","Bombeiro","Arquiteto","Eletricista","Dentista"
+    ],
+
+    "lugares": [
+        "Brasil","Paris","Japão","Praia","Escola","Hospital","Aeroporto","Restaurante","Cinema","Estádio",
+        "Casa","Prédio","Cidade","Campo","Ilha","Floresta","Biblioteca","Shopping","Rua","Ponte"
+    ],
+
+    "transporte": [
+        "Carro","Moto","Avião","Navio","Bicicleta","Trem","Ônibus","Helicóptero","Barco","Caminhão",
+        "Uber","Táxi","Metrô","Estrada","Rodovia","Garagem","Porto","Pista","Viagem","Passagem"
+    ],
+
+    "cultura": [
+        "Filme","Série","Música","Arte","Teatro","Livro","Jogo","Dança","Show","Festival",
+        "Cinema","Banda","Palco","Tela","História","Câmera","Cena","Diretor","Roteiro","Personagem"
+    ],
+
+    "esporte": [
+        "Gol","Passe","Chute","Time","Torcida","Copa","Juiz","Camisa","Campo","Bola",
+        "Treino","Partida","Final","Liga","Atleta","Corrida","Salto","Vitória","Derrota","Competição"
+    ],
+
+    "abstrato": [
+        "Tempo","Amor","Guerra","Poder","Vida","Morte","Energia","Força","Velocidade","Ideia",
+        "Sorte","Azar","Destino","Verdade","Mentira","Sonho","Medo","Coragem","Liberdade","Controle"
+    ],
+
+    "elementos": [
+        "Fogo","Água","Terra","Ar","Metal","Madeira","Vidro","Plástico","Luz","Sombra",
+        "Calor","Frio","Som","Cor","Escuro","Brilho","Peso","Forma","Tamanho","Volume"
     ]
 }
 
@@ -56,7 +107,41 @@ temas = {
 # GERAR JOGO
 # =========================
 def gerar_jogo():
-    palavras = random.sample(temas["futebol"], 25)
+    global palavras_usadas, historico_partidas
+
+    # 🔥 NÍVEL 2 → escolhe categorias aleatórias
+    categorias = random.sample(list(temas.keys()), 3)
+
+    pool = []
+    for c in categorias:
+        pool += temas[c]
+
+    # mistura todas categorias automaticamente
+    lista_total = []
+    for lista in temas.values():
+        lista_total += lista
+
+    # 🔥 NÍVEL 1 → evita palavras repetidas
+    disponiveis = list(set(pool) - palavras_usadas)
+
+    if len(disponiveis) < 25:
+        palavras_usadas.clear()
+        disponiveis = pool.copy()
+
+    # 🔥 NÍVEL 3 → evita repetir partida igual
+    tentativas = 0
+    while True:
+        palavras = random.sample(disponiveis, 25)
+
+        if palavras not in historico_partidas:
+            historico_partidas.append(palavras)
+            break
+
+        tentativas += 1
+        if tentativas > 10:
+            break  # evita loop infinito
+
+    palavras_usadas.update(palavras)
 
     mapa = (
         (["blue"] * 8) +
@@ -66,6 +151,7 @@ def gerar_jogo():
     )
 
     random.shuffle(mapa)
+
     return palavras, mapa
 
 palavras, mapa = gerar_jogo()
@@ -140,6 +226,14 @@ HTML_JOGO = """
 <input type="hidden" id="meuTime" value="{{ meu_time }}">
 <input type="hidden" id="salaVersao" value="{{ sala_versao }}">
 
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-game">
+        <h2 id="modalTitulo">⚠️ Aviso</h2>
+        <p id="modalMensagem"></p>
+        <button onclick="fecharModal()">OK</button>
+    </div>
+</div>
+
 <div class="scoreboard">
     <div class="score blue-score">🔵 Azul: <span id="pontosAzul">0</span>/8</div>
     <div class="score red-score">🔴 Vermelho: <span id="pontosVermelho">0</span>/8</div>
@@ -198,6 +292,16 @@ HTML_JOGO = """
 let ultimoTurno = null;
 let cartaSelecionada = null;
 let vitoriaMostrada = false;
+
+function abrirModal(titulo, mensagem) {
+    document.getElementById("modalTitulo").innerText = titulo;
+    document.getElementById("modalMensagem").innerText = mensagem;
+    document.getElementById("modalOverlay").classList.add("active");
+}
+
+function fecharModal() {
+    document.getElementById("modalOverlay").classList.remove("active");
+}
 
 function verificarResetGeral() {
     fetch('/status_sala')
@@ -324,7 +428,7 @@ function atualizarEstadoJogo() {
                 if (!vitoriaMostrada) {
                     vitoriaMostrada = true;
                     setTimeout(() => {
-                        alert("🏆 Time " + data.vencedor.toUpperCase() + " venceu!");
+                        abrirModal("🏆 Vitória!", "Time " + data.vencedor.toUpperCase() + " venceu!");
                     }, 400);
                 }
 
@@ -345,7 +449,7 @@ function revelarCarta(index) {
     const meuTime = document.getElementById("meuTime").value;
 
     if (papel === "espiao") {
-        alert("🕵️ Espiões não podem selecionar cartas.");
+        abrirModal("🕵️ Acesso bloqueado", "Espiões não podem selecionar cartas.");
         return;
     }
 
@@ -380,7 +484,7 @@ function revelarCarta(index) {
     .then(res => res.json())
     .then(data => {
         if (data.erro) {
-            alert(data.erro);
+            abrirModal("⚠️ Atenção", data.erro);
             return;
         }
 
@@ -462,6 +566,12 @@ def home():
 
         <button class="button-ui button-alt" onclick="entrar('espiao', '')">
             🕵️ Espião
+        </button>
+                                  
+        <br><br>
+
+        <button class="button-ui button-admin" onclick="window.location.href='/admin'">
+            🔒 Admin
         </button>
     </div>
 </div>
@@ -598,10 +708,18 @@ def jokenpo_tela():
         <h2>🎲 Pedra, Papel ou Tesoura</h2>
 
         <p>Escolha sua jogada</p>
+                                          
+        <br><br>
 
-        <button class="button-ui" onclick="jogar('pedra')">🪨 Pedra</button>
-        <button class="button-ui button-alt" onclick="jogar('papel')">📄 Papel</button>
-        <button class="button-ui button-danger" onclick="jogar('tesoura')">✂️ Tesoura</button>
+        <button class="button-ui" onclick="jogar('pedra')">✊🏻 Pedra</button>
+                                          
+        <br><br>
+        
+        <button class="button-ui button-alt" onclick="jogar('papel')">🖐🏻 Papel</button>
+                                          
+        <br><br>
+        
+        <button class="button-ui button-danger" onclick="jogar('tesoura')">✌🏻 Tesoura</button>
     </div>
 </div>
 
@@ -903,9 +1021,17 @@ def admin_painel():
 
         <p>Espiões: {{espioes}}</p>
         <p>Mensagens: {{chat}}</p>
+                                          
+        <br><br>
 
         <button class="button-ui" onclick="acao('reset')">🔄 Reset</button>
+        
+        <br><br>
+        
         <button class="button-ui button-alt" onclick="acao('tempo')">⏱️ Timer</button>
+                                          
+        <br><br>
+        
         <button class="button-ui button-danger" onclick="acao('inicio')">🏠 Reset Geral</button>
     </div>
 </div>
@@ -1093,4 +1219,4 @@ def status_sala():
 # RODAR
 # =========================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(debug=True)
