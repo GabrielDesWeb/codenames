@@ -38,44 +38,68 @@ vencedor_jogo = None
 
 limite_palpites = 0
 palpites_rodada = 0
+palavras_usadas = set()
+historico_partidas = []
+
 
 # =========================
 # TEMAS
 # =========================
 temas = {
-    "geral": [
-        # OBJETOS
+
+    "objetos": [
         "Mesa","Cadeira","Janela","Porta","Espelho","Relógio","Chave","Copo","Livro","Caneta",
+        "Telefone","Lâmpada","Faca","Garfo","Colher","Caixa","Bolsa","Mochila","Câmera","Controle"
+    ],
 
-        # TECNOLOGIA
+    "tecnologia": [
         "Computador","Celular","Internet","Código","Robô","Software","Hardware","Servidor","Banco","Dados",
+        "Senha","Rede","Tela","Sistema","Aplicativo","Bug","Download","Upload","Arquivo","Processador"
+    ],
 
-        # NATUREZA
+    "natureza": [
         "Árvore","Rio","Montanha","Sol","Lua","Estrela","Floresta","Deserto","Mar","Chuva",
+        "Vento","Tempestade","Neve","Gelo","Pedra","Areia","Lago","Céu","Nuvem","Raiz"
+    ],
 
-        # COMIDA
+    "comida": [
         "Pizza","Hambúrguer","Arroz","Feijão","Chocolate","Café","Leite","Pão","Macarrão","Sorvete",
+        "Carne","Frango","Peixe","Salada","Ovo","Queijo","Batata","Doce","Bolo","Suco"
+    ],
 
-        # PROFISSÕES
+    "profissoes": [
         "Médico","Professor","Engenheiro","Policial","Advogado","Programador","Designer","Chef","Piloto","Ator",
+        "Cantor","Jogador","Motorista","Mecânico","Enfermeiro","Juiz","Bombeiro","Arquiteto","Eletricista","Dentista"
+    ],
 
-        # LUGARES
+    "lugares": [
         "Brasil","Paris","Japão","Praia","Escola","Hospital","Aeroporto","Restaurante","Cinema","Estádio",
+        "Casa","Prédio","Cidade","Campo","Ilha","Floresta","Biblioteca","Shopping","Rua","Ponte"
+    ],
 
-        # CULTURA / ENTRETENIMENTO
+    "transporte": [
+        "Carro","Moto","Avião","Navio","Bicicleta","Trem","Ônibus","Helicóptero","Barco","Caminhão",
+        "Uber","Táxi","Metrô","Estrada","Rodovia","Garagem","Porto","Pista","Viagem","Passagem"
+    ],
+
+    "cultura": [
         "Filme","Série","Música","Arte","Teatro","Livro","Jogo","Dança","Show","Festival",
+        "Cinema","Banda","Palco","Tela","História","Câmera","Cena","Diretor","Roteiro","Personagem"
+    ],
 
-        # TRANSPORTE
-        "Carro","Moto","Avião","Navio","Bicicleta","Trem","Ônibus","Helicóptero",
+    "esporte": [
+        "Gol","Passe","Chute","Time","Torcida","Copa","Juiz","Camisa","Campo","Bola",
+        "Treino","Partida","Final","Liga","Atleta","Corrida","Salto","Vitória","Derrota","Competição"
+    ],
 
-        # ESPORTE (mantém um pouco do futebol também)
-        "Gol","Passe","Chute","Time","Torcida","Copa","Juiz","Camisa",
-
-        # COISAS ABSTRATAS (ESSENCIAL PRA FICAR BOM)
+    "abstrato": [
         "Tempo","Amor","Guerra","Poder","Vida","Morte","Energia","Força","Velocidade","Ideia",
+        "Sorte","Azar","Destino","Verdade","Mentira","Sonho","Medo","Coragem","Liberdade","Controle"
+    ],
 
-        # COISAS ALEATÓRIAS BOAS PRA JOGO
-        "Fogo","Gelo","Pedra","Metal","Vidro","Plástico","Som","Luz","Sombra","Cor"
+    "elementos": [
+        "Fogo","Água","Terra","Ar","Metal","Madeira","Vidro","Plástico","Luz","Sombra",
+        "Calor","Frio","Som","Cor","Escuro","Brilho","Peso","Forma","Tamanho","Volume"
     ]
 }
 
@@ -83,7 +107,41 @@ temas = {
 # GERAR JOGO
 # =========================
 def gerar_jogo():
-    palavras = random.sample(temas["geral"], 25)
+    global palavras_usadas, historico_partidas
+
+    # 🔥 NÍVEL 2 → escolhe categorias aleatórias
+    categorias = random.sample(list(temas.keys()), 3)
+
+    pool = []
+    for c in categorias:
+        pool += temas[c]
+
+    # mistura todas categorias automaticamente
+    lista_total = []
+    for lista in temas.values():
+        lista_total += lista
+
+    # 🔥 NÍVEL 1 → evita palavras repetidas
+    disponiveis = list(set(pool) - palavras_usadas)
+
+    if len(disponiveis) < 25:
+        palavras_usadas.clear()
+        disponiveis = pool.copy()
+
+    # 🔥 NÍVEL 3 → evita repetir partida igual
+    tentativas = 0
+    while True:
+        palavras = random.sample(disponiveis, 25)
+
+        if palavras not in historico_partidas:
+            historico_partidas.append(palavras)
+            break
+
+        tentativas += 1
+        if tentativas > 10:
+            break  # evita loop infinito
+
+    palavras_usadas.update(palavras)
 
     mapa = (
         (["blue"] * 8) +
@@ -93,6 +151,7 @@ def gerar_jogo():
     )
 
     random.shuffle(mapa)
+
     return palavras, mapa
 
 palavras, mapa = gerar_jogo()
