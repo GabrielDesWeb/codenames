@@ -1093,3 +1093,67 @@ body.body-turno-vermelho #turno {
     75% { transform: translateX(-5px); }
     100% { transform: translateX(0); }
 }
+
+/* =========================
+   AJUSTES FINAIS DE ESTABILIDADE
+========================= */
+
+/* Garante que todos os botões coloridos nunca fiquem brancos */
+.button-ui {
+    border: none;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+/* Corrige botão admin caso use button-admin ou btn-admin */
+.button-admin,
+.btn-admin {
+    background: linear-gradient(135deg, #8a2be2, #ff00cc);
+    box-shadow: 0 0 15px rgba(255, 0, 204, 0.6);
+}
+
+/* Garante cor no botão de login do admin */
+.btn-admin-login {
+    background: linear-gradient(135deg, #8a2be2, #ff00cc);
+}
+
+/* Garante texto branco em todos os botões especiais */
+.button-azul,
+.button-vermelho,
+.button-espiao,
+.button-admin,
+.btn-admin,
+.btn-pedra,
+.btn-papel,
+.btn-tesoura,
+.btn-confirmar,
+.btn-reset,
+.btn-tempo,
+.btn-reset-geral,
+.btn-admin-login {
+    color: white;
+}
+
+/* Evita botões ficarem com largura quebrada em telas pequenas */
+.button-ui {
+    width: min(100%, 260px);
+}
+
+/* Melhor leitura dos textos nas cartas */
+.card-front,
+.card-back {
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+/* Reduz movimento para usuários/dispositivos sensíveis */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
