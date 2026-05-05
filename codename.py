@@ -713,15 +713,15 @@ def jokenpo_tela():
                                           
         <br><br>
 
-        <button class="button-ui" onclick="jogar('pedra')">✊🏻 Pedra</button>
+        <button class="button-ui btn-pedra" onclick="jogar('pedra')">✊🏻 Pedra</button>    
                                           
         <br><br>
         
-        <button class="button-ui button-alt" onclick="jogar('papel')">🖐🏻 Papel</button>
+        <button class="button-ui btn-papel" onclick="jogar('papel')">🖐🏻 Papel</button>
                                           
         <br><br>
         
-        <button class="button-ui button-danger" onclick="jogar('tesoura')">✌🏻 Tesoura</button>
+        <button class="button-ui btn-tesoura" onclick="jogar('tesoura')">✌🏻 Tesoura</button>
     </div>
 </div>
 
@@ -846,7 +846,7 @@ def resultado():
             {% endif %}
         </h3>
 
-        <button class="button-ui" onclick="irJogo()">Ir para o jogo</button>
+        <button class="button-ui btn-confirmar" onclick="irJogo()">🚀 Ir para o jogo</button>
     </div>
 </div>
 
