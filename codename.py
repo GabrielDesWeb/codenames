@@ -605,9 +605,15 @@ def jokenpo_tela():
 
         <p>Escolha sua jogada</p>
 
-        <button class="button-ui" onclick="jogar('pedra')">🪨 Pedra</button>
-        <button class="button-ui button-alt" onclick="jogar('papel')">📄 Papel</button>
-        <button class="button-ui button-danger" onclick="jogar('tesoura')">✂️ Tesoura</button>
+        <button class="button-ui" onclick="jogar('pedra')">✊🏻 Pedra</button>
+                                          
+        <br><br>
+        
+        <button class="button-ui button-alt" onclick="jogar('papel')">🖐🏻 Papel</button>
+                                          
+        <br><br>
+        
+        <button class="button-ui button-danger" onclick="jogar('tesoura')">✌🏻 Tesoura</button>
     </div>
 </div>
 
