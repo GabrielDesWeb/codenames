@@ -5,6 +5,31 @@ import time
 app = Flask(__name__)
 
 # =========================
+# MODAL
+# =========================
+MODAL_HTML = """
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-game">
+        <h2 id="modalTitulo">⚠️ Aviso</h2>
+        <p id="modalMensagem"></p>
+        <button onclick="fecharModal()">OK</button>
+    </div>
+</div>
+"""
+
+MODAL_JS = """
+function abrirModal(titulo, mensagem) {
+    document.getElementById("modalTitulo").innerText = titulo;
+    document.getElementById("modalMensagem").innerText = mensagem;
+    document.getElementById("modalOverlay").classList.add("active");
+}
+
+function fecharModal() {
+    document.getElementById("modalOverlay").classList.remove("active");
+}
+"""
+
+# =========================
 # CONTROLE
 # =========================
 versao_sala = 0
@@ -303,16 +328,6 @@ function fecharModal() {
     document.getElementById("modalOverlay").classList.remove("active");
 }
 
-function acao(tipo) {
-    fetch('/admin_acao', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: 'tipo=' + tipo + '&senha={{senha}}'
-    }).then(() => {
-        abrirModal("✅ Sucesso", "Ação executada!");
-    });
-}
-
 function verificarResetGeral() {
     fetch('/status_sala')
         .then(res => res.json())
@@ -472,7 +487,7 @@ function revelarCarta(index) {
     }
 
     if (!meuTime) {
-        alert("Você precisa estar em um time para jogar.");
+        abrirModal("⚠️ Atenção", "Você precisa estar em um time para jogar.");
         return;
     }
 
@@ -564,6 +579,8 @@ def home():
 
 <body>
 
+""" + MODAL_HTML + """
+
 <div class="page-center">
     <div class="card-ui">
         <h2>🎮 Codenames</h2>
@@ -587,11 +604,13 @@ def home():
 </div>
 
 <script>
+""" + MODAL_JS + """
+
 function entrar(papel, time) {
     const nome = document.getElementById("nomeInput").value;
 
     if (!nome) {
-        alert("Digite seu nome!");
+        abrirModal("⚠️ Atenção", "Digite seu nome!");
         return;
     }
 
@@ -604,6 +623,10 @@ function entrar(papel, time) {
             "&time=" +
             encodeURIComponent(time);
     }
+}
+
+function irAdmin() {
+    window.location.href = "/admin";
 }
 </script>
 
@@ -712,7 +735,8 @@ def jokenpo_tela():
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-
+                                  
+""" + MODAL_HTML + """
 <div class="page-center">
     <div class="card-ui">
         <h2>🎲 Pedra, Papel ou Tesoura</h2>
@@ -734,6 +758,7 @@ def jokenpo_tela():
 </div>
 
 <script>
+""" + MODAL_JS + """
 const minhaVersao = {{ sala_versao }};
 
 function jogar(escolha) {
@@ -743,7 +768,7 @@ function jogar(escolha) {
         body: 'nome={{nome}}&escolha=' + escolha
     });
 
-    alert("Escolha enviada!");
+    abrirModal("✅ Enviado", "Escolha enviada!");
 }
 
 setInterval(() => {
@@ -978,7 +1003,7 @@ def admin():
 
         <form method="post">
             <input class="input-ui" type="password" name="senha" placeholder="Senha">
-            <button class="button-ui">Entrar</button>
+            <button class="button-ui btn-admin-login">🔓 Entrar</button>
         </form>
     </div>
 </div>
@@ -1025,6 +1050,8 @@ def admin_painel():
 </head>
 <body>
 
+""" + MODAL_HTML + """
+
 <div class="page-center">
     <div class="card-ui">
         <h2>🎮 Painel Admin</h2>
@@ -1037,19 +1064,21 @@ def admin_painel():
         <button class="button-ui btn-reset" onclick="acao('reset')">🔄 Reset</button>
         <button class="button-ui btn-tempo" onclick="acao('tempo')">⏱️ Timer</button>
         <button class="button-ui btn-reset-geral" onclick="acao('inicio')">🏠 Reset Geral</button>
-                                  
     </div>
 </div>
 
 <script>
+""" + MODAL_JS + """
+
 function acao(tipo) {
     fetch('/admin_acao', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'tipo=' + tipo + '&senha={{senha}}'
-        .then(() => {
-            abrirModal("✅ Sucesso", "Ação executada!");
-        });
+    }).then(() => {
+        abrirModal("✅ Sucesso", "Ação executada!");
+    });
+}
 </script>
 
 </body>
