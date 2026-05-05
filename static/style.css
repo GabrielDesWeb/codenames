@@ -657,3 +657,7 @@ h1 {
         font-size: 22px;
     }
 }
+
+.button-admin {
+    background: linear-gradient(135deg, #7b2cff, #ff00c8);
+}

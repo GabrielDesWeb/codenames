@@ -463,6 +463,12 @@ def home():
         <button class="button-ui button-alt" onclick="entrar('espiao', '')">
             🕵️ Espião
         </button>
+                                  
+        <br><br>
+
+        <button class="button-ui button-admin" onclick="window.location.href='/admin'">
+            🔒 Admin
+        </button>
     </div>
 </div>
 
