@@ -1057,3 +1057,20 @@ body.body-turno-vermelho #turno {
 .btn-confirmar {
     background: linear-gradient(135deg, #43e97b, #38f9d7);
 }
+
+.btn-admin {
+    background: linear-gradient(135deg, #8a2be2, #ff00cc);
+    box-shadow: 0 0 15px rgba(255, 0, 204, 0.6);
+}
+
+.btn-reset {
+    background: linear-gradient(135deg, #4facfe, #00c6ff);
+}
+
+.btn-tempo {
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+}
+
+.btn-reset-geral {
+    background: linear-gradient(135deg, #ff416c, #ff0000);
+}  

@@ -572,9 +572,7 @@ def home():
             🕵️ Espião
         </button>                          
 
-        <button class="button-ui button-admin" onclick="window.location.href='/admin'">
-            🔒 Admin
-        </button>
+        <button class="button-ui btn-admin" onclick="irAdmin()">🔒 Admin</button>
     </div>
 </div>
 
@@ -1026,15 +1024,10 @@ def admin_painel():
                                           
         <br><br>
 
-        <button class="button-ui" onclick="acao('reset')">🔄 Reset</button>
-        
-        <br><br>
-        
-        <button class="button-ui button-alt" onclick="acao('tempo')">⏱️ Timer</button>
-                                          
-        <br><br>
-        
-        <button class="button-ui button-danger" onclick="acao('inicio')">🏠 Reset Geral</button>
+        <button class="button-ui btn-reset" onclick="acao('reset')">🔄 Reset</button>
+        <button class="button-ui btn-tempo" onclick="acao('tempo')">⏱️ Timer</button>
+        <button class="button-ui btn-reset-geral" onclick="acao('inicio')">🏠 Reset Geral</button>
+                                  
     </div>
 </div>
 
