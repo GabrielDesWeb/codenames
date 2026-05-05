@@ -226,6 +226,14 @@ HTML_JOGO = """
 <input type="hidden" id="meuTime" value="{{ meu_time }}">
 <input type="hidden" id="salaVersao" value="{{ sala_versao }}">
 
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-game">
+        <h2 id="modalTitulo">⚠️ Aviso</h2>
+        <p id="modalMensagem"></p>
+        <button onclick="fecharModal()">OK</button>
+    </div>
+</div>
+
 <div class="scoreboard">
     <div class="score blue-score">🔵 Azul: <span id="pontosAzul">0</span>/8</div>
     <div class="score red-score">🔴 Vermelho: <span id="pontosVermelho">0</span>/8</div>
@@ -284,6 +292,16 @@ HTML_JOGO = """
 let ultimoTurno = null;
 let cartaSelecionada = null;
 let vitoriaMostrada = false;
+
+function abrirModal(titulo, mensagem) {
+    document.getElementById("modalTitulo").innerText = titulo;
+    document.getElementById("modalMensagem").innerText = mensagem;
+    document.getElementById("modalOverlay").classList.add("active");
+}
+
+function fecharModal() {
+    document.getElementById("modalOverlay").classList.remove("active");
+}
 
 function verificarResetGeral() {
     fetch('/status_sala')
@@ -410,7 +428,7 @@ function atualizarEstadoJogo() {
                 if (!vitoriaMostrada) {
                     vitoriaMostrada = true;
                     setTimeout(() => {
-                        alert("🏆 Time " + data.vencedor.toUpperCase() + " venceu!");
+                        abrirModal("🏆 Vitória!", "Time " + data.vencedor.toUpperCase() + " venceu!");
                     }, 400);
                 }
 
@@ -431,7 +449,7 @@ function revelarCarta(index) {
     const meuTime = document.getElementById("meuTime").value;
 
     if (papel === "espiao") {
-        alert("🕵️ Espiões não podem selecionar cartas.");
+        abrirModal("🕵️ Acesso bloqueado", "Espiões não podem selecionar cartas.");
         return;
     }
 
@@ -466,7 +484,7 @@ function revelarCarta(index) {
     .then(res => res.json())
     .then(data => {
         if (data.erro) {
-            alert(data.erro);
+            abrirModal("⚠️ Atenção", data.erro);
             return;
         }
 
