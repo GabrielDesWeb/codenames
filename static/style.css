@@ -1074,3 +1074,22 @@ body.body-turno-vermelho #turno {
 .btn-reset-geral {
     background: linear-gradient(135deg, #ff416c, #ff0000);
 }  
+
+.btn-admin-login {
+    background: linear-gradient(135deg, #8a2be2, #ff00cc);
+}
+
+.erro-login {
+    color: #ff4b4b;
+    font-weight: bold;
+    margin-bottom: 10px;
+    animation: shake 0.3s;
+}
+
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+    100% { transform: translateX(0); }
+}

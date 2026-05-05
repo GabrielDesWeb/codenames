@@ -303,6 +303,16 @@ function fecharModal() {
     document.getElementById("modalOverlay").classList.remove("active");
 }
 
+function acao(tipo) {
+    fetch('/admin_acao', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'tipo=' + tipo + '&senha={{senha}}'
+    }).then(() => {
+        abrirModal("✅ Sucesso", "Ação executada!");
+    });
+}
+
 function verificarResetGeral() {
     fetch('/status_sala')
         .then(res => res.json())
@@ -964,7 +974,7 @@ def admin():
     <div class="card-ui">
         <h2>🔒 Admin</h2>
 
-        <p style="color:red;">Senha incorreta</p>
+        <p class="erro-login">❌ Senha incorreta</p>
 
         <form method="post">
             <input class="input-ui" type="password" name="senha" placeholder="Senha">
@@ -991,7 +1001,7 @@ def admin():
 
         <form method="post">
             <input class="input-ui" type="password" name="senha" placeholder="Senha">
-            <button class="button-ui">Entrar</button>
+            <button class="button-ui btn-admin-login">🔓 Entrar</button>
         </form>
     </div>
 </div>
@@ -1037,10 +1047,9 @@ function acao(tipo) {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'tipo=' + tipo + '&senha={{senha}}'
-    }).then(() => {
-        alert("Ação executada!");
-    });
-}
+        .then(() => {
+            abrirModal("✅ Sucesso", "Ação executada!");
+        });
 </script>
 
 </body>
