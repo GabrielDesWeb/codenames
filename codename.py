@@ -343,6 +343,14 @@ function atualizarTempo() {
                 ultimoTurno = data.turno;
             }
 
+            document.body.classList.remove("body-turno-azul", "body-turno-vermelho");
+
+            if (data.turno === "azul") {
+                document.body.classList.add("body-turno-azul");
+            } else if (data.turno === "vermelho") {
+                document.body.classList.add("body-turno-vermelho");
+            }
+
             const timerEl = document.getElementById("timer");
             timerEl.innerText = data.tempo > 0 ? "⏱️ " + data.tempo + "s" : "";
 
