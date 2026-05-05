@@ -552,19 +552,19 @@ def home():
 
         <input id="nomeInput" class="input-ui" placeholder="Digite seu nome">
 
-        <button class="button-ui" onclick="entrar('detetive', 'azul')">
+        <button class="button-ui button-azul" onclick="entrar('detetive', 'azul')">
             🔵 Detetive Azul
         </button>
 
         <br><br>
 
-        <button class="button-ui button-danger" onclick="entrar('detetive', 'vermelho')">
+        <button class="button-ui button-vermelho" onclick="entrar('detetive', 'vermelho')">
             🔴 Detetive Vermelho
         </button>
 
         <br><br>
 
-        <button class="button-ui button-alt" onclick="entrar('espiao', '')">
+        <button class="button-ui button-espiao" onclick="entrar('espiao', '')">
             🕵️ Espião
         </button>
                                   
