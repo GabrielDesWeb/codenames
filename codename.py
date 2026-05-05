@@ -911,7 +911,13 @@ def admin_painel():
         <p>Mensagens: {{chat}}</p>
 
         <button class="button-ui" onclick="acao('reset')">🔄 Reset</button>
+        
+        <br><br>
+        
         <button class="button-ui button-alt" onclick="acao('tempo')">⏱️ Timer</button>
+                                          
+        <br><br>
+        
         <button class="button-ui button-danger" onclick="acao('inicio')">🏠 Reset Geral</button>
     </div>
 </div>
