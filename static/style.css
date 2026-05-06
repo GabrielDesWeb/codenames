@@ -263,7 +263,6 @@ h3 {
 
 /* PRE-SELEÇÃO */
 .card-inner.preselected {
-    outline: 3px solid white;
     transform: scale(1.08);
     animation: pulse 1s infinite;
 }
