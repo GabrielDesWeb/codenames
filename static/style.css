@@ -265,6 +265,7 @@ h3 {
 .card-inner.preselected {
     transform: scale(1.08);
     animation: pulse 1s infinite;
+    border-radius: 14px;
 }
 
 @keyframes pulse {
