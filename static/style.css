@@ -499,8 +499,10 @@ h3 {
 .card-inner.preselected:not(.flipped) .card-front {
     background: #e5e7eb;
     color: #111;
-    outline: 3px solid rgba(255,255,255,0.9);
-    box-shadow: 0 0 18px rgba(255,255,255,0.8);
+    border: 3px solid rgba(255,255,255,0.9);
+    box-shadow:
+        0 0 18px rgba(255,255,255,0.8),
+        0 0 30px rgba(255,255,255,0.35);
 }
 
 /* CORES DO VERSO */
