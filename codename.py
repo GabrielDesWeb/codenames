@@ -41,6 +41,7 @@ tempo_restante = 0
 jogo_ativo = True
 turno = None
 timer_ativo = False
+fim_timer_em = None
 
 TEMPO_RETORNO_FINAL = 10
 fim_jogo_em = None
@@ -65,7 +66,7 @@ limite_palpites = 0
 palpites_rodada = 0
 palavras_usadas = set()
 historico_partidas = []
-
+fim_timer_em = None
 
 # =========================
 # TEMAS
@@ -188,6 +189,7 @@ def resetar_jogo(forcar_retorno=False):
     global jogadas_jokenpo, espioes_lista, espioes, resultado_jokenpo
     global jogo_ativo, limite_palpites, palpites_rodada, versao_sala
     global fim_jogo_em
+    global fim_timer_em
 
     palavras, mapa = gerar_jogo()
     cartas_reveladas = [False] * 25
@@ -204,6 +206,7 @@ def resetar_jogo(forcar_retorno=False):
     vencedor_jogo = None
     turno = None
     tempo_restante = 0
+    fim_timer_em = None
     timer_ativo = False
     jogo_ativo = True
     fim_jogo_em = None
@@ -916,6 +919,7 @@ setInterval(() => {
 @app.route("/enviar_dica", methods=["POST"])
 def enviar_dica():
     global tempo_restante, timer_ativo, limite_palpites, palpites_rodada
+    global fim_timer_em
 
     papel = request.form.get("papel")
     mensagem = request.form.get("mensagem")
@@ -942,7 +946,9 @@ def enviar_dica():
             limite_palpites = 1
 
         palpites_rodada = 0
+
         tempo_restante = 120
+        fim_timer_em = time.time() + 120
         timer_ativo = True
 
     return ("", 204)
@@ -1111,7 +1117,8 @@ def admin_acao():
 def revelar():
     global cartas_reveladas, turno, pontos
     global jogo_encerrado, vencedor_jogo, timer_ativo, tempo_restante
-    global palpites_rodada, limite_palpites, fim_jogo_em
+    global palpites_rodada, limite_palpites, fim_jogo_em, fim_timer_em
+    
 
     if jogo_encerrado:
         return jsonify({
@@ -1142,6 +1149,7 @@ def revelar():
         vencedor_jogo = "vermelho" if turno == "azul" else "azul"
         timer_ativo = False
         tempo_restante = 0
+        fim_timer_em = None
 
         chat_log.append(f"💀 {palavra} era a carta assassina!")
         chat_log.append(f"🏆 Time {vencedor_jogo.upper()} venceu!")
@@ -1156,6 +1164,7 @@ def revelar():
             vencedor_jogo = "azul"
             timer_ativo = False
             tempo_restante = 0
+            fim_timer_em = None
             chat_log.append("🏆 Time AZUL encontrou todas as cartas e venceu!")
 
         elif turno == "azul":
@@ -1165,11 +1174,13 @@ def revelar():
                 turno = "vermelho"
                 timer_ativo = False
                 tempo_restante = 0
+                fim_timer_em = None
                 chat_log.append("✅ Limite da dica atingido! Agora é turno do time VERMELHO")
         else:
             turno = "vermelho"
             timer_ativo = False
             tempo_restante = 0
+            fim_timer_em = None
             chat_log.append("❌ Carta do outro time! Agora é turno do time VERMELHO")
 
     elif cor == "red":
@@ -1182,6 +1193,7 @@ def revelar():
             vencedor_jogo = "vermelho"
             timer_ativo = False
             tempo_restante = 0
+            fim_timer_em = None
             chat_log.append("🏆 Time VERMELHO encontrou todas as cartas e venceu!")
 
         elif turno == "vermelho":
@@ -1191,16 +1203,19 @@ def revelar():
                 turno = "azul"
                 timer_ativo = False
                 tempo_restante = 0
+                fim_timer_em = None
                 chat_log.append("✅ Limite da dica atingido! Agora é turno do time AZUL")
         else:
             turno = "azul"
             timer_ativo = False
             tempo_restante = 0
+            fim_timer_em = None
             chat_log.append("❌ Carta do outro time! Agora é turno do time AZUL")
 
     elif cor == "neutral":
         timer_ativo = False
         tempo_restante = 0
+        fim_timer_em = None
         turno = "vermelho" if turno == "azul" else "azul"
 
         chat_log.append(f"⚪ Carta neutra revelada: {palavra}")
@@ -1218,7 +1233,7 @@ def revelar():
 
 @app.route("/tempo")
 def tempo():
-    global tempo_restante, timer_ativo, turno
+    global tempo_restante, timer_ativo, turno, fim_timer_em
 
     if jogo_encerrado:
         return {
@@ -1227,13 +1242,16 @@ def tempo():
             "ativo": False
         }
 
-    if timer_ativo and tempo_restante > 0:
-        tempo_restante -= 1
+    if timer_ativo and fim_timer_em:
+        tempo_restante = max(0, int(fim_timer_em - time.time()))
 
-    elif tempo_restante == 0 and timer_ativo:
-        timer_ativo = False
-        turno = "vermelho" if turno == "azul" else "azul"
-        chat_log.append(f"⏱️ Tempo esgotado! Agora é turno do time {turno}")
+        if tempo_restante <= 0:
+            timer_ativo = False
+            fim_timer_em = None
+            tempo_restante = 0
+
+            turno = "vermelho" if turno == "azul" else "azul"
+            chat_log.append(f"⏱️ Tempo esgotado! Agora é turno do time {turno}")
 
     return {
         "tempo": tempo_restante,
