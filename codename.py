@@ -322,6 +322,11 @@ HTML_JOGO = """
             </div>
             {% endfor %}
         </div>
+
+        <div class="turno-timer-box">
+            <h2 id="turno"></h2>
+            <h3 id="timer"></h3>
+        </div>
     </div>
 
     <div class="chat">
@@ -343,11 +348,6 @@ HTML_JOGO = """
         {% endif %}
     </div>
 
-</div>
-
-<div style="margin-top: 20px;">
-    <h2 id="turno"></h2>
-    <h3 id="timer"></h3>
 </div>
 
 <script>

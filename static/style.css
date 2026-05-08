@@ -1342,3 +1342,18 @@ body.body-turno-vermelho #turno {
     color: #ff6a6a;
     border-left: 3px solid #ff6a6a;
 }
+
+.turno-timer-box {
+    width: 100%;
+    text-align: center;
+    margin-top: 18px;
+}
+
+.turno-timer-box #turno {
+    margin-top: 0;
+    margin-bottom: 6px;
+}
+
+.turno-timer-box #timer {
+    margin-top: 0;
+}
