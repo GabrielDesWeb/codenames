@@ -42,6 +42,8 @@ jogo_ativo = True
 turno = None
 timer_ativo = False
 fim_timer_em = None
+jogadores_online = {}
+detetives_pontos = {}
 
 TEMPO_RETORNO_FINAL = 10
 fim_jogo_em = None
@@ -135,37 +137,62 @@ temas = {
 def gerar_jogo():
     global palavras_usadas, historico_partidas
 
-    # 🔥 NÍVEL 2 → escolhe categorias aleatórias
-    categorias = random.sample(list(temas.keys()), 3)
+    MAX_POR_TEMA = 2  # pode trocar para 3 se quiser menos rígido
+    TOTAL_CARTAS = 25
 
-    pool = []
-    for c in categorias:
-        pool += temas[c]
+    categorias = list(temas.keys())
+    random.shuffle(categorias)
 
-    # mistura todas categorias automaticamente
-    lista_total = []
-    for lista in temas.values():
-        lista_total += lista
+    palavras = []
+    temas_usados = []
 
-    # 🔥 NÍVEL 1 → evita palavras repetidas
-    disponiveis = list(set(pool) - palavras_usadas)
+    for categoria in categorias:
+        palavras_disponiveis = list(set(temas[categoria]) - palavras_usadas)
 
-    if len(disponiveis) < 25:
-        palavras_usadas.clear()
-        disponiveis = pool.copy()
+        # se esse tema ficou sem palavras disponíveis, usa a lista normal dele
+        if len(palavras_disponiveis) < MAX_POR_TEMA:
+            palavras_disponiveis = temas[categoria].copy()
 
-    # 🔥 NÍVEL 3 → evita repetir partida igual
-    tentativas = 0
-    while True:
-        palavras = random.sample(disponiveis, 25)
+        qtd = min(MAX_POR_TEMA, len(palavras_disponiveis), TOTAL_CARTAS - len(palavras))
 
-        if palavras not in historico_partidas:
-            historico_partidas.append(palavras)
+        if qtd > 0:
+            escolhidas = random.sample(palavras_disponiveis, qtd)
+            palavras.extend(escolhidas)
+            temas_usados.append(categoria)
+
+        if len(palavras) >= TOTAL_CARTAS:
             break
 
+    # se ainda faltar palavra, completa com qualquer categoria respeitando não repetir
+    if len(palavras) < TOTAL_CARTAS:
+        lista_total = []
+        for lista in temas.values():
+            lista_total += lista
+
+        extras = list(set(lista_total) - set(palavras) - palavras_usadas)
+
+        if len(extras) < (TOTAL_CARTAS - len(palavras)):
+            palavras_usadas.clear()
+            extras = list(set(lista_total) - set(palavras))
+
+        faltam = TOTAL_CARTAS - len(palavras)
+        palavras.extend(random.sample(extras, faltam))
+
+    random.shuffle(palavras)
+
+    assinatura = tuple(sorted(palavras))
+
+    tentativas = 0
+    while assinatura in historico_partidas and tentativas < 10:
+        random.shuffle(palavras)
+        assinatura = tuple(sorted(palavras))
         tentativas += 1
-        if tentativas > 10:
-            break  # evita loop infinito
+
+    historico_partidas.append(assinatura)
+
+    # limita o histórico para não crescer infinito no servidor
+    if len(historico_partidas) > 100:
+        historico_partidas.pop(0)
 
     palavras_usadas.update(palavras)
 
@@ -190,7 +217,10 @@ def resetar_jogo(forcar_retorno=False):
     global jogo_ativo, limite_palpites, palpites_rodada, versao_sala
     global fim_jogo_em
     global fim_timer_em
+    global jogadores_online, detetives_pontos
 
+    jogadores_online.clear()
+    detetives_pontos.clear()
     palavras, mapa = gerar_jogo()
     cartas_reveladas = [False] * 25
 
@@ -295,6 +325,10 @@ HTML_JOGO = """
     </div>
 
     <div class="chat">
+        <div class="players-panel">
+            <h3>👥 Jogadores na sala</h3>
+            <div id="players-list"></div>
+        </div>
         <h3>📜 Histórico</h3>
 
         <div id="chat-box" class="chat-box"></div>
@@ -404,6 +438,51 @@ function atualizarTempo() {
         });
 }
 
+function pingJogador() {
+    const nome = document.getElementById("nome").value;
+    const papel = document.getElementById("papel").value;
+    const meuTime = document.getElementById("meuTime").value;
+
+    fetch('/ping_jogador', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:
+            'nome=' + encodeURIComponent(nome) +
+            '&papel=' + encodeURIComponent(papel) +
+            '&time=' + encodeURIComponent(meuTime)
+    });
+}
+
+function atualizarJogadores() {
+    fetch('/jogadores_data')
+        .then(res => res.json())
+        .then(data => {
+            const box = document.getElementById("players-list");
+
+            let html = "";
+
+            html += "<div class='players-section'><strong>🕵️ Espiões</strong>";
+            data.espioes.forEach(j => {
+                html += `<p class="player ${j.time}">${j.nome} — ${j.time.toUpperCase()}</p>`;
+            });
+            html += "</div>";
+
+            html += "<div class='players-section'><strong>🧠 Detetives</strong>";
+            data.detetives.forEach(j => {
+                html += `<p class="player ${j.time}">${j.nome} — ${j.time.toUpperCase()} | ⭐ ${j.pontos}</p>`;
+            });
+            html += "</div>";
+
+            box.innerHTML = html;
+        });
+}
+
+setInterval(pingJogador, 3000);
+setInterval(atualizarJogadores, 3000);
+
+pingJogador();
+atualizarJogadores();
+
 setInterval(atualizarTempo, 1000);
 
 function atualizarChat() {
@@ -439,9 +518,17 @@ function atualizarEstadoJogo() {
             data.cartas_reveladas.forEach((revelada, index) => {
                 if (revelada) {
                     const card = document.getElementById("card-" + index);
+
                     if (card) {
                         card.classList.add("flipped");
                         card.classList.remove("preselected");
+
+                        // visão especial do espião
+                        const papel = document.getElementById("papel").value;
+
+                        if (papel === "espiao") {
+                            card.classList.add("espiao-revelada");
+                        }
                     }
                 }
             });
@@ -515,7 +602,8 @@ function revelarCarta(index) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body:
             'index=' + index +
-            '&time=' + encodeURIComponent(meuTime)
+            '&time=' + encodeURIComponent(meuTime) +
+            '&nome=' + encodeURIComponent(document.getElementById("nome").value)
     })
     .then(res => res.json())
     .then(data => {
@@ -1129,6 +1217,10 @@ def revelar():
 
     index = int(request.form.get("index"))
     time_jogador = request.form.get("time")
+    nome_jogador = request.form.get("nome")
+    
+    if time_jogador == "azul" and nome_jogador:
+        detetives_pontos[nome_jogador] = detetives_pontos.get(nome_jogador, 0) + 1
 
     if not turno:
         return jsonify({"erro": "O turno ainda não foi definido."})
@@ -1156,6 +1248,8 @@ def revelar():
 
     elif cor == "blue":
         pontos["azul"] += 1
+        if time_jogador == "vermelho" and nome_jogador:
+            detetives_pontos[nome_jogador] = detetives_pontos.get(nome_jogador, 0) + 1
         chat_log.append(f"🔵 Carta azul revelada: {palavra}")
 
         if pontos["azul"] >= 8:
@@ -1185,6 +1279,8 @@ def revelar():
 
     elif cor == "red":
         pontos["vermelho"] += 1
+        if time_jogador == "vermelho" and nome_jogador:
+            detetives_pontos[nome_jogador] = detetives_pontos.get(nome_jogador, 0) + 1
         chat_log.append(f"🔴 Carta vermelha revelada: {palavra}")
 
         if pontos["vermelho"] >= 8:
@@ -1264,6 +1360,62 @@ def status_sala():
     return jsonify({
         "jogo_ativo": jogo_ativo,
         "versao_sala": versao_sala
+    })
+
+@app.route("/ping_jogador", methods=["POST"])
+def ping_jogador():
+    nome = request.form.get("nome")
+    papel = request.form.get("papel")
+    time_jogador = request.form.get("time")
+
+    if not nome:
+        return ("", 204)
+
+    jogadores_online[nome] = {
+        "papel": papel,
+        "time": time_jogador,
+        "last_seen": time.time()
+    }
+
+    if papel == "detetive" and nome not in detetives_pontos:
+        detetives_pontos[nome] = 0
+
+    return ("", 204)
+
+
+@app.route("/jogadores_data")
+def jogadores_data():
+    agora = time.time()
+
+    # remove quem ficou mais de 15s sem responder
+    offline = [
+        nome for nome, dados in jogadores_online.items()
+        if agora - dados["last_seen"] > 15
+    ]
+
+    for nome in offline:
+        jogadores_online.pop(nome, None)
+
+    espioes_online = []
+    detetives_online = []
+
+    for nome, dados in jogadores_online.items():
+        if dados["papel"] == "espiao":
+            espioes_online.append({
+                "nome": nome,
+                "time": dados["time"]
+            })
+
+        elif dados["papel"] == "detetive":
+            detetives_online.append({
+                "nome": nome,
+                "time": dados["time"],
+                "pontos": detetives_pontos.get(nome, 0)
+            })
+
+    return jsonify({
+        "espioes": espioes_online,
+        "detetives": detetives_online
     })
 
 # =========================
