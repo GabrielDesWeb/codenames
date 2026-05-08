@@ -323,17 +323,26 @@ HTML_JOGO = """
             {% endfor %}
         </div>
 
-        <div class="turno-timer-box">
-            <h2 id="turno"></h2>
-            <h3 id="timer"></h3>
+    <div class="turno-timer-box">
+        <h2 id="turno"></h2>
+
+        <div class="timer-card">
+            <div class="timer-circle">
+                <span id="timerIcon">⏱️</span>
+                <strong id="timer">--</strong>
+            </div>
+
+            <div class="timer-info">
+                <span id="timerStatus">Aguardando dica...</span>
+
+                <div class="timer-bar">
+                    <div id="timerProgress" class="timer-progress"></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="chat">
-        <div class="players-panel">
-            <h3>👥 Jogadores na sala</h3>
-            <div id="players-list"></div>
-        </div>
         <h3>📜 Histórico</h3>
 
         <div id="chat-box" class="chat-box"></div>
@@ -346,6 +355,11 @@ HTML_JOGO = """
         {% else %}
         <p>🔒 Apenas espiões enviam dicas</p>
         {% endif %}
+
+        <div class="players-panel">
+            <h3>👥 Jogadores na sala</h3>
+            <div id="players-list"></div>
+        </div>
     </div>
 
 </div>
@@ -414,8 +428,46 @@ function atualizarTempo() {
             }
 
             const timerEl = document.getElementById("timer");
-            timerEl.innerText = data.tempo > 0 ? "⏱️ " + data.tempo + "s" : "";
+            const timerStatus = document.getElementById("timerStatus");
+            const timerProgress = document.getElementById("timerProgress");
+            const timerCard = document.querySelector(".timer-card");
 
+            const TEMPO_TOTAL = 120;
+
+            if (data.tempo > 0) {
+                timerEl.innerText = data.tempo + "s";
+                timerStatus.innerText = "Rodada em andamento";
+
+                const percentual = Math.max(0, Math.min(100, (data.tempo / TEMPO_TOTAL) * 100));
+                timerProgress.style.width = percentual + "%";
+
+                timerCard.classList.add("timer-active");
+                timerCard.classList.remove("timer-idle", "timer-danger");
+
+                if (data.tempo <= 15) {
+                    timerCard.classList.add("timer-danger");
+                }
+
+            } else {
+                timerEl.innerText = "--";
+                timerStatus.innerText = "Aguardando dica...";
+                timerProgress.style.width = "0%";
+
+                timerCard.classList.remove("timer-active", "timer-danger");
+                timerCard.classList.add("timer-idle");
+            }
+
+            const timerCard = document.querySelector(".timer-card");
+
+            if (timerCard) {
+                timerCard.classList.remove("timer-azul", "timer-vermelho");
+
+                if (data.turno === "azul") {
+                    timerCard.classList.add("timer-azul");
+                } else if (data.turno === "vermelho") {
+                    timerCard.classList.add("timer-vermelho");
+                }
+            }
             const turnoEl = document.getElementById("turno");
             turnoEl.innerText = "Turno: " + data.turno;
             turnoEl.style.color = data.turno === "azul" ? "#4facfe" : "#ff6a6a";
@@ -462,15 +514,37 @@ function atualizarJogadores() {
             let html = "";
 
             html += "<div class='players-section'><strong>🕵️ Espiões</strong>";
-            data.espioes.forEach(j => {
-                html += `<p class="player ${j.time}">${j.nome} — ${j.time.toUpperCase()}</p>`;
-            });
+
+            if (data.espioes.length === 0) {
+                html += "<p class='player-empty'>Nenhum espião online</p>";
+            } else {
+                data.espioes.forEach(j => {
+                    html += `
+                        <p class="player ${j.time}">
+                            <span>${j.nome}</span>
+                            <span>${j.time.toUpperCase()}</span>
+                        </p>
+                    `;
+                });
+            }
+
             html += "</div>";
 
             html += "<div class='players-section'><strong>🧠 Detetives</strong>";
-            data.detetives.forEach(j => {
-                html += `<p class="player ${j.time}">${j.nome} — ${j.time.toUpperCase()} | ⭐ ${j.pontos}</p>`;
-            });
+
+            if (data.detetives.length === 0) {
+                html += "<p class='player-empty'>Nenhum detetive online</p>";
+            } else {
+                data.detetives.forEach(j => {
+                    html += `
+                        <p class="player ${j.time}">
+                            <span>${j.nome} — ${j.time.toUpperCase()}</span>
+                            <span>⭐ ${j.pontos}</span>
+                        </p>
+                    `;
+                });
+            }
+
             html += "</div>";
 
             box.innerHTML = html;
@@ -1023,7 +1097,10 @@ def enviar_dica():
         return "🚫 Não é seu turno!"
 
     if mensagem and nome:
-        chat_log.append(f"🕵️ {nome}: {mensagem}")
+        cor_icone = "🔵" if espioes.get(nome) == "azul" else "🔴"
+        chat_log.append(
+            f"{cor_icone} 🕵️ {nome}: {mensagem}"
+        )
 
         partes = mensagem.strip().split()
         numero = partes[-1] if partes else "0"
@@ -1248,8 +1325,6 @@ def revelar():
 
     elif cor == "blue":
         pontos["azul"] += 1
-        if time_jogador == "vermelho" and nome_jogador:
-            detetives_pontos[nome_jogador] = detetives_pontos.get(nome_jogador, 0) + 1
         chat_log.append(f"🔵 Carta azul revelada: {palavra}")
 
         if pontos["azul"] >= 8:
@@ -1269,18 +1344,18 @@ def revelar():
                 timer_ativo = False
                 tempo_restante = 0
                 fim_timer_em = None
+                palpites_rodada = 0
                 chat_log.append("✅ Limite da dica atingido! Agora é turno do time VERMELHO")
         else:
-            turno = "vermelho"
+            turno = "vermelho" if turno == "azul" else "azul"
             timer_ativo = False
             tempo_restante = 0
             fim_timer_em = None
-            chat_log.append("❌ Carta do outro time! Agora é turno do time VERMELHO")
+            palpites_rodada = 0
+            chat_log.append(f"❌ Carta do outro time! Agora é turno do time {turno.upper()}")
 
     elif cor == "red":
         pontos["vermelho"] += 1
-        if time_jogador == "vermelho" and nome_jogador:
-            detetives_pontos[nome_jogador] = detetives_pontos.get(nome_jogador, 0) + 1
         chat_log.append(f"🔴 Carta vermelha revelada: {palavra}")
 
         if pontos["vermelho"] >= 8:
@@ -1300,13 +1375,15 @@ def revelar():
                 timer_ativo = False
                 tempo_restante = 0
                 fim_timer_em = None
+                palpites_rodada = 0
                 chat_log.append("✅ Limite da dica atingido! Agora é turno do time AZUL")
         else:
-            turno = "azul"
+            turno = "vermelho" if turno == "azul" else "azul"
             timer_ativo = False
             tempo_restante = 0
             fim_timer_em = None
-            chat_log.append("❌ Carta do outro time! Agora é turno do time AZUL")
+            palpites_rodada = 0
+            chat_log.append(f"❌ Carta do outro time! Agora é turno do time {turno.upper()}")
 
     elif cor == "neutral":
         timer_ativo = False
