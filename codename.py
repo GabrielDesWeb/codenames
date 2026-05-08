@@ -399,86 +399,105 @@ function atualizarTempo() {
     fetch('/tempo')
         .then(res => res.json())
         .then(data => {
-            if (!data.turno) return;
-            
             const grid = document.querySelector(".grid");
-
-            grid.classList.remove("turno-azul", "turno-vermelho");
-
-            if (data.turno === "azul") {
-                grid.classList.add("turno-azul");
-            } else if (data.turno === "vermelho") {
-                grid.classList.add("turno-vermelho");
-            }
-
-            if (data.turno !== ultimoTurno) {
-                grid.classList.add("animar-turno");
-
-                setTimeout(() => {
-                    grid.classList.remove("animar-turno");
-                }, 500);
-
-                ultimoTurno = data.turno;
-            }
-
-            document.body.classList.remove("body-turno-azul", "body-turno-vermelho");
-
-            if (data.turno === "azul") {
-                document.body.classList.add("body-turno-azul");
-            } else if (data.turno === "vermelho") {
-                document.body.classList.add("body-turno-vermelho");
-            }
-
+            const turnoEl = document.getElementById("turno");
             const timerEl = document.getElementById("timer");
             const timerStatus = document.getElementById("timerStatus");
             const timerProgress = document.getElementById("timerProgress");
             const timerCard = document.querySelector(".timer-card");
-
-            const TEMPO_TOTAL = 120;
-
-            if (data.tempo > 0) {
-                timerEl.innerText = data.tempo + "s";
-                timerStatus.innerText = "Rodada em andamento";
-
-                const percentual = Math.max(0, Math.min(100, (data.tempo / TEMPO_TOTAL) * 100));
-                timerProgress.style.width = percentual + "%";
-
-                timerCard.classList.add("timer-active");
-                timerCard.classList.remove("timer-idle", "timer-danger");
-
-                if (data.tempo <= 15) {
-                    timerCard.classList.add("timer-danger");
-                }
-
-            } else {
-                timerEl.innerText = "--";
-                timerStatus.innerText = "Aguardando dica...";
-                timerProgress.style.width = "0%";
-
-                timerCard.classList.remove("timer-active", "timer-danger");
-                timerCard.classList.add("timer-idle");
-            }
-
-            const timerCard = document.querySelector(".timer-card");
-
-            if (timerCard) {
-                timerCard.classList.remove("timer-azul", "timer-vermelho");
-
-                if (data.turno === "azul") {
-                    timerCard.classList.add("timer-azul");
-                } else if (data.turno === "vermelho") {
-                    timerCard.classList.add("timer-vermelho");
-                }
-            }
-            const turnoEl = document.getElementById("turno");
-            turnoEl.innerText = "Turno: " + data.turno;
-            turnoEl.style.color = data.turno === "azul" ? "#4facfe" : "#ff6a6a";
 
             const papel = document.getElementById("papel").value;
             const meuTime = document.getElementById("meuTime").value;
             const inputMsg = document.getElementById("msgInput");
             const btnEnviar = document.getElementById("btnEnviar");
 
+            if (!data.turno) {
+                if (turnoEl) turnoEl.innerText = "Aguardando início...";
+                if (timerEl) timerEl.innerText = "--";
+                if (timerStatus) timerStatus.innerText = "Aguardando dica...";
+                if (timerProgress) timerProgress.style.width = "0%";
+                return;
+            }
+
+            // glow do tabuleiro
+            if (grid) {
+                grid.classList.remove("turno-azul", "turno-vermelho");
+
+                if (data.turno === "azul") {
+                    grid.classList.add("turno-azul");
+                } else {
+                    grid.classList.add("turno-vermelho");
+                }
+
+                if (data.turno !== ultimoTurno) {
+                    grid.classList.add("animar-turno");
+
+                    setTimeout(() => {
+                        grid.classList.remove("animar-turno");
+                    }, 500);
+
+                    ultimoTurno = data.turno;
+                }
+            }
+
+            // tema do body
+            document.body.classList.remove("body-turno-azul", "body-turno-vermelho");
+
+            if (data.turno === "azul") {
+                document.body.classList.add("body-turno-azul");
+            } else {
+                document.body.classList.add("body-turno-vermelho");
+            }
+
+            // texto turno
+            if (turnoEl) {
+                turnoEl.innerText = "Turno: " + data.turno.toUpperCase();
+                turnoEl.style.color = data.turno === "azul" ? "#4facfe" : "#ff6a6a";
+            }
+
+            // timer gamer
+            const TEMPO_TOTAL = 120;
+
+            if (timerCard) {
+                timerCard.classList.remove("timer-azul", "timer-vermelho");
+
+                if (data.turno === "azul") {
+                    timerCard.classList.add("timer-azul");
+                } else {
+                    timerCard.classList.add("timer-vermelho");
+                }
+            }
+
+            if (data.tempo > 0) {
+                if (timerEl) timerEl.innerText = data.tempo + "s";
+                if (timerStatus) timerStatus.innerText = "Rodada em andamento";
+
+                if (timerProgress) {
+                    const percentual = Math.max(0, Math.min(100, (data.tempo / TEMPO_TOTAL) * 100));
+                    timerProgress.style.width = percentual + "%";
+                }
+
+                if (timerCard) {
+                    timerCard.classList.add("timer-active");
+                    timerCard.classList.remove("timer-idle", "timer-danger");
+
+                    if (data.tempo <= 15) {
+                        timerCard.classList.add("timer-danger");
+                    }
+                }
+
+            } else {
+                if (timerEl) timerEl.innerText = "--";
+                if (timerStatus) timerStatus.innerText = "Aguardando dica...";
+                if (timerProgress) timerProgress.style.width = "0%";
+
+                if (timerCard) {
+                    timerCard.classList.remove("timer-active", "timer-danger");
+                    timerCard.classList.add("timer-idle");
+                }
+            }
+
+            // libera chat só para o espião do turno
             if (papel === "espiao" && inputMsg && btnEnviar) {
                 const minhaVez = meuTime === data.turno;
 
@@ -486,7 +505,7 @@ function atualizarTempo() {
                 btnEnviar.disabled = !minhaVez;
 
                 inputMsg.placeholder = minhaVez
-                    ? "Ex: Futebol 2"
+                    ? "Ex: Natureza 2"
                     : "Aguardando sua vez...";
             }
         });
@@ -556,6 +575,7 @@ function atualizarJogadores() {
 setInterval(pingJogador, 3000);
 setInterval(atualizarJogadores, 3000);
 
+atualizarTempo();
 pingJogador();
 atualizarJogadores();
 
