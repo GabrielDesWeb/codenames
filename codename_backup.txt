@@ -41,6 +41,9 @@ tempo_restante = 0
 jogo_ativo = True
 turno = None
 timer_ativo = False
+fim_timer_em = None
+jogadores_online = {}
+detetives_pontos = {}
 
 TEMPO_RETORNO_FINAL = 10
 fim_jogo_em = None
@@ -65,7 +68,7 @@ limite_palpites = 0
 palpites_rodada = 0
 palavras_usadas = set()
 historico_partidas = []
-
+fim_timer_em = None
 
 # =========================
 # TEMAS
@@ -134,37 +137,62 @@ temas = {
 def gerar_jogo():
     global palavras_usadas, historico_partidas
 
-    # 🔥 NÍVEL 2 → escolhe categorias aleatórias
-    categorias = random.sample(list(temas.keys()), 3)
+    MAX_POR_TEMA = 2  # pode trocar para 3 se quiser menos rígido
+    TOTAL_CARTAS = 25
 
-    pool = []
-    for c in categorias:
-        pool += temas[c]
+    categorias = list(temas.keys())
+    random.shuffle(categorias)
 
-    # mistura todas categorias automaticamente
-    lista_total = []
-    for lista in temas.values():
-        lista_total += lista
+    palavras = []
+    temas_usados = []
 
-    # 🔥 NÍVEL 1 → evita palavras repetidas
-    disponiveis = list(set(pool) - palavras_usadas)
+    for categoria in categorias:
+        palavras_disponiveis = list(set(temas[categoria]) - palavras_usadas)
 
-    if len(disponiveis) < 25:
-        palavras_usadas.clear()
-        disponiveis = pool.copy()
+        # se esse tema ficou sem palavras disponíveis, usa a lista normal dele
+        if len(palavras_disponiveis) < MAX_POR_TEMA:
+            palavras_disponiveis = temas[categoria].copy()
 
-    # 🔥 NÍVEL 3 → evita repetir partida igual
-    tentativas = 0
-    while True:
-        palavras = random.sample(disponiveis, 25)
+        qtd = min(MAX_POR_TEMA, len(palavras_disponiveis), TOTAL_CARTAS - len(palavras))
 
-        if palavras not in historico_partidas:
-            historico_partidas.append(palavras)
+        if qtd > 0:
+            escolhidas = random.sample(palavras_disponiveis, qtd)
+            palavras.extend(escolhidas)
+            temas_usados.append(categoria)
+
+        if len(palavras) >= TOTAL_CARTAS:
             break
 
+    # se ainda faltar palavra, completa com qualquer categoria respeitando não repetir
+    if len(palavras) < TOTAL_CARTAS:
+        lista_total = []
+        for lista in temas.values():
+            lista_total += lista
+
+        extras = list(set(lista_total) - set(palavras) - palavras_usadas)
+
+        if len(extras) < (TOTAL_CARTAS - len(palavras)):
+            palavras_usadas.clear()
+            extras = list(set(lista_total) - set(palavras))
+
+        faltam = TOTAL_CARTAS - len(palavras)
+        palavras.extend(random.sample(extras, faltam))
+
+    random.shuffle(palavras)
+
+    assinatura = tuple(sorted(palavras))
+
+    tentativas = 0
+    while assinatura in historico_partidas and tentativas < 10:
+        random.shuffle(palavras)
+        assinatura = tuple(sorted(palavras))
         tentativas += 1
-        if tentativas > 10:
-            break  # evita loop infinito
+
+    historico_partidas.append(assinatura)
+
+    # limita o histórico para não crescer infinito no servidor
+    if len(historico_partidas) > 100:
+        historico_partidas.pop(0)
 
     palavras_usadas.update(palavras)
 
@@ -188,7 +216,11 @@ def resetar_jogo(forcar_retorno=False):
     global jogadas_jokenpo, espioes_lista, espioes, resultado_jokenpo
     global jogo_ativo, limite_palpites, palpites_rodada, versao_sala
     global fim_jogo_em
+    global fim_timer_em
+    global jogadores_online, detetives_pontos
 
+    jogadores_online.clear()
+    detetives_pontos.clear()
     palavras, mapa = gerar_jogo()
     cartas_reveladas = [False] * 25
 
@@ -204,6 +236,7 @@ def resetar_jogo(forcar_retorno=False):
     vencedor_jogo = None
     turno = None
     tempo_restante = 0
+    fim_timer_em = None
     timer_ativo = False
     jogo_ativo = True
     fim_jogo_em = None
@@ -272,8 +305,9 @@ HTML_JOGO = """
 
 <div class="container">
 
-    <div>
+    <div class="board-area">
         <h2>🎯 Tabuleiro</h2>
+
         <div class="grid">
             {% for i in range(25) %}
             <div class="card-container" onclick="revelarCarta({{i}})">
@@ -288,6 +322,25 @@ HTML_JOGO = """
                 </div>
             </div>
             {% endfor %}
+        </div>
+
+        <div class="turno-timer-box">
+            <h2 id="turno"></h2>
+
+            <div class="timer-card">
+                <div class="timer-circle">
+                    <span id="timerIcon">⏱️</span>
+                    <strong id="timer">--</strong>
+                </div>
+
+                <div class="timer-info">
+                    <span id="timerStatus">Aguardando dica...</span>
+
+                    <div class="timer-bar">
+                        <div id="timerProgress" class="timer-progress"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -304,13 +357,13 @@ HTML_JOGO = """
         {% else %}
         <p>🔒 Apenas espiões enviam dicas</p>
         {% endif %}
+
+        <div class="players-panel">
+            <h3>👥 Jogadores na sala</h3>
+            <div id="players-list"></div>
+        </div>
     </div>
 
-</div>
-
-<div style="margin-top: 20px;">
-    <h2 id="turno"></h2>
-    <h3 id="timer"></h3>
 </div>
 
 <script>
@@ -346,48 +399,105 @@ function atualizarTempo() {
     fetch('/tempo')
         .then(res => res.json())
         .then(data => {
-            if (!data.turno) return;
-            
             const grid = document.querySelector(".grid");
-
-            grid.classList.remove("turno-azul", "turno-vermelho");
-
-            if (data.turno === "azul") {
-                grid.classList.add("turno-azul");
-            } else if (data.turno === "vermelho") {
-                grid.classList.add("turno-vermelho");
-            }
-
-            if (data.turno !== ultimoTurno) {
-                grid.classList.add("animar-turno");
-
-                setTimeout(() => {
-                    grid.classList.remove("animar-turno");
-                }, 500);
-
-                ultimoTurno = data.turno;
-            }
-
-            document.body.classList.remove("body-turno-azul", "body-turno-vermelho");
-
-            if (data.turno === "azul") {
-                document.body.classList.add("body-turno-azul");
-            } else if (data.turno === "vermelho") {
-                document.body.classList.add("body-turno-vermelho");
-            }
-
-            const timerEl = document.getElementById("timer");
-            timerEl.innerText = data.tempo > 0 ? "⏱️ " + data.tempo + "s" : "";
-
             const turnoEl = document.getElementById("turno");
-            turnoEl.innerText = "Turno: " + data.turno;
-            turnoEl.style.color = data.turno === "azul" ? "#4facfe" : "#ff6a6a";
+            const timerEl = document.getElementById("timer");
+            const timerStatus = document.getElementById("timerStatus");
+            const timerProgress = document.getElementById("timerProgress");
+            const timerCard = document.querySelector(".timer-card");
 
             const papel = document.getElementById("papel").value;
             const meuTime = document.getElementById("meuTime").value;
             const inputMsg = document.getElementById("msgInput");
             const btnEnviar = document.getElementById("btnEnviar");
 
+            if (!data.turno) {
+                if (turnoEl) turnoEl.innerText = "Aguardando início...";
+                if (timerEl) timerEl.innerText = "--";
+                if (timerStatus) timerStatus.innerText = "Aguardando dica...";
+                if (timerProgress) timerProgress.style.width = "0%";
+                return;
+            }
+
+            // glow do tabuleiro
+            if (grid) {
+                grid.classList.remove("turno-azul", "turno-vermelho");
+
+                if (data.turno === "azul") {
+                    grid.classList.add("turno-azul");
+                } else {
+                    grid.classList.add("turno-vermelho");
+                }
+
+                if (data.turno !== ultimoTurno) {
+                    grid.classList.add("animar-turno");
+
+                    setTimeout(() => {
+                        grid.classList.remove("animar-turno");
+                    }, 500);
+
+                    ultimoTurno = data.turno;
+                }
+            }
+
+            // tema do body
+            document.body.classList.remove("body-turno-azul", "body-turno-vermelho");
+
+            if (data.turno === "azul") {
+                document.body.classList.add("body-turno-azul");
+            } else {
+                document.body.classList.add("body-turno-vermelho");
+            }
+
+            // texto turno
+            if (turnoEl) {
+                turnoEl.innerText = "Turno: " + data.turno.toUpperCase();
+                turnoEl.style.color = data.turno === "azul" ? "#4facfe" : "#ff6a6a";
+            }
+
+            // timer gamer
+            const TEMPO_TOTAL = 120;
+
+            if (timerCard) {
+                timerCard.classList.remove("timer-azul", "timer-vermelho");
+
+                if (data.turno === "azul") {
+                    timerCard.classList.add("timer-azul");
+                } else {
+                    timerCard.classList.add("timer-vermelho");
+                }
+            }
+
+            if (data.tempo > 0) {
+                if (timerEl) timerEl.innerText = data.tempo + "s";
+                if (timerStatus) timerStatus.innerText = "Rodada em andamento";
+
+                if (timerProgress) {
+                    const percentual = Math.max(0, Math.min(100, (data.tempo / TEMPO_TOTAL) * 100));
+                    timerProgress.style.width = percentual + "%";
+                }
+
+                if (timerCard) {
+                    timerCard.classList.add("timer-active");
+                    timerCard.classList.remove("timer-idle", "timer-danger");
+
+                    if (data.tempo <= 15) {
+                        timerCard.classList.add("timer-danger");
+                    }
+                }
+
+            } else {
+                if (timerEl) timerEl.innerText = "--";
+                if (timerStatus) timerStatus.innerText = "Aguardando dica...";
+                if (timerProgress) timerProgress.style.width = "0%";
+
+                if (timerCard) {
+                    timerCard.classList.remove("timer-active", "timer-danger");
+                    timerCard.classList.add("timer-idle");
+                }
+            }
+
+            // libera chat só para o espião do turno
             if (papel === "espiao" && inputMsg && btnEnviar) {
                 const minhaVez = meuTime === data.turno;
 
@@ -395,11 +505,79 @@ function atualizarTempo() {
                 btnEnviar.disabled = !minhaVez;
 
                 inputMsg.placeholder = minhaVez
-                    ? "Ex: Futebol 2"
+                    ? "Ex: Natureza 2"
                     : "Aguardando sua vez...";
             }
         });
 }
+
+function pingJogador() {
+    const nome = document.getElementById("nome").value;
+    const papel = document.getElementById("papel").value;
+    const meuTime = document.getElementById("meuTime").value;
+
+    fetch('/ping_jogador', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:
+            'nome=' + encodeURIComponent(nome) +
+            '&papel=' + encodeURIComponent(papel) +
+            '&time=' + encodeURIComponent(meuTime)
+    });
+}
+
+function atualizarJogadores() {
+    fetch('/jogadores_data')
+        .then(res => res.json())
+        .then(data => {
+            const box = document.getElementById("players-list");
+
+            let html = "";
+
+            html += "<div class='players-section'><strong>🕵️ Espiões</strong>";
+
+            if (data.espioes.length === 0) {
+                html += "<p class='player-empty'>Nenhum espião online</p>";
+            } else {
+                data.espioes.forEach(j => {
+                    html += `
+                        <p class="player ${j.time}">
+                            <span>${j.nome}</span>
+                            <span>${j.time.toUpperCase()}</span>
+                        </p>
+                    `;
+                });
+            }
+
+            html += "</div>";
+
+            html += "<div class='players-section'><strong>🧠 Detetives</strong>";
+
+            if (data.detetives.length === 0) {
+                html += "<p class='player-empty'>Nenhum detetive online</p>";
+            } else {
+                data.detetives.forEach(j => {
+                    html += `
+                        <p class="player ${j.time}">
+                            <span>${j.nome} — ${j.time.toUpperCase()}</span>
+                            <span>⭐ ${j.pontos}</span>
+                        </p>
+                    `;
+                });
+            }
+
+            html += "</div>";
+
+            box.innerHTML = html;
+        });
+}
+
+setInterval(pingJogador, 3000);
+setInterval(atualizarJogadores, 3000);
+
+atualizarTempo();
+pingJogador();
+atualizarJogadores();
 
 setInterval(atualizarTempo, 1000);
 
@@ -436,9 +614,17 @@ function atualizarEstadoJogo() {
             data.cartas_reveladas.forEach((revelada, index) => {
                 if (revelada) {
                     const card = document.getElementById("card-" + index);
+
                     if (card) {
                         card.classList.add("flipped");
                         card.classList.remove("preselected");
+
+                        // visão especial do espião
+                        const papel = document.getElementById("papel").value;
+
+                        if (papel === "espiao") {
+                            card.classList.add("espiao-revelada");
+                        }
                     }
                 }
             });
@@ -512,7 +698,8 @@ function revelarCarta(index) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body:
             'index=' + index +
-            '&time=' + encodeURIComponent(meuTime)
+            '&time=' + encodeURIComponent(meuTime) +
+            '&nome=' + encodeURIComponent(document.getElementById("nome").value)
     })
     .then(res => res.json())
     .then(data => {
@@ -916,6 +1103,7 @@ setInterval(() => {
 @app.route("/enviar_dica", methods=["POST"])
 def enviar_dica():
     global tempo_restante, timer_ativo, limite_palpites, palpites_rodada
+    global fim_timer_em
 
     papel = request.form.get("papel")
     mensagem = request.form.get("mensagem")
@@ -931,7 +1119,10 @@ def enviar_dica():
         return "🚫 Não é seu turno!"
 
     if mensagem and nome:
-        chat_log.append(f"🕵️ {nome}: {mensagem}")
+        cor_icone = "🔵" if espioes.get(nome) == "azul" else "🔴"
+        chat_log.append(
+            f"{cor_icone} 🕵️ {nome}: {mensagem}"
+        )
 
         partes = mensagem.strip().split()
         numero = partes[-1] if partes else "0"
@@ -942,7 +1133,9 @@ def enviar_dica():
             limite_palpites = 1
 
         palpites_rodada = 0
+
         tempo_restante = 120
+        fim_timer_em = time.time() + 120
         timer_ativo = True
 
     return ("", 204)
@@ -1111,7 +1304,8 @@ def admin_acao():
 def revelar():
     global cartas_reveladas, turno, pontos
     global jogo_encerrado, vencedor_jogo, timer_ativo, tempo_restante
-    global palpites_rodada, limite_palpites, fim_jogo_em
+    global palpites_rodada, limite_palpites, fim_jogo_em, fim_timer_em
+    
 
     if jogo_encerrado:
         return jsonify({
@@ -1122,6 +1316,10 @@ def revelar():
 
     index = int(request.form.get("index"))
     time_jogador = request.form.get("time")
+    nome_jogador = request.form.get("nome")
+    
+    if time_jogador == "azul" and nome_jogador:
+        detetives_pontos[nome_jogador] = detetives_pontos.get(nome_jogador, 0) + 1
 
     if not turno:
         return jsonify({"erro": "O turno ainda não foi definido."})
@@ -1142,6 +1340,7 @@ def revelar():
         vencedor_jogo = "vermelho" if turno == "azul" else "azul"
         timer_ativo = False
         tempo_restante = 0
+        fim_timer_em = None
 
         chat_log.append(f"💀 {palavra} era a carta assassina!")
         chat_log.append(f"🏆 Time {vencedor_jogo.upper()} venceu!")
@@ -1156,6 +1355,7 @@ def revelar():
             vencedor_jogo = "azul"
             timer_ativo = False
             tempo_restante = 0
+            fim_timer_em = None
             chat_log.append("🏆 Time AZUL encontrou todas as cartas e venceu!")
 
         elif turno == "azul":
@@ -1165,12 +1365,16 @@ def revelar():
                 turno = "vermelho"
                 timer_ativo = False
                 tempo_restante = 0
+                fim_timer_em = None
+                palpites_rodada = 0
                 chat_log.append("✅ Limite da dica atingido! Agora é turno do time VERMELHO")
         else:
-            turno = "vermelho"
+            turno = "vermelho" if turno == "azul" else "azul"
             timer_ativo = False
             tempo_restante = 0
-            chat_log.append("❌ Carta do outro time! Agora é turno do time VERMELHO")
+            fim_timer_em = None
+            palpites_rodada = 0
+            chat_log.append(f"❌ Carta do outro time! Agora é turno do time {turno.upper()}")
 
     elif cor == "red":
         pontos["vermelho"] += 1
@@ -1182,6 +1386,7 @@ def revelar():
             vencedor_jogo = "vermelho"
             timer_ativo = False
             tempo_restante = 0
+            fim_timer_em = None
             chat_log.append("🏆 Time VERMELHO encontrou todas as cartas e venceu!")
 
         elif turno == "vermelho":
@@ -1191,16 +1396,21 @@ def revelar():
                 turno = "azul"
                 timer_ativo = False
                 tempo_restante = 0
+                fim_timer_em = None
+                palpites_rodada = 0
                 chat_log.append("✅ Limite da dica atingido! Agora é turno do time AZUL")
         else:
-            turno = "azul"
+            turno = "vermelho" if turno == "azul" else "azul"
             timer_ativo = False
             tempo_restante = 0
-            chat_log.append("❌ Carta do outro time! Agora é turno do time AZUL")
+            fim_timer_em = None
+            palpites_rodada = 0
+            chat_log.append(f"❌ Carta do outro time! Agora é turno do time {turno.upper()}")
 
     elif cor == "neutral":
         timer_ativo = False
         tempo_restante = 0
+        fim_timer_em = None
         turno = "vermelho" if turno == "azul" else "azul"
 
         chat_log.append(f"⚪ Carta neutra revelada: {palavra}")
@@ -1218,7 +1428,7 @@ def revelar():
 
 @app.route("/tempo")
 def tempo():
-    global tempo_restante, timer_ativo, turno
+    global tempo_restante, timer_ativo, turno, fim_timer_em
 
     if jogo_encerrado:
         return {
@@ -1227,13 +1437,16 @@ def tempo():
             "ativo": False
         }
 
-    if timer_ativo and tempo_restante > 0:
-        tempo_restante -= 1
+    if timer_ativo and fim_timer_em:
+        tempo_restante = max(0, int(fim_timer_em - time.time()))
 
-    elif tempo_restante == 0 and timer_ativo:
-        timer_ativo = False
-        turno = "vermelho" if turno == "azul" else "azul"
-        chat_log.append(f"⏱️ Tempo esgotado! Agora é turno do time {turno}")
+        if tempo_restante <= 0:
+            timer_ativo = False
+            fim_timer_em = None
+            tempo_restante = 0
+
+            turno = "vermelho" if turno == "azul" else "azul"
+            chat_log.append(f"⏱️ Tempo esgotado! Agora é turno do time {turno}")
 
     return {
         "tempo": tempo_restante,
@@ -1246,6 +1459,62 @@ def status_sala():
     return jsonify({
         "jogo_ativo": jogo_ativo,
         "versao_sala": versao_sala
+    })
+
+@app.route("/ping_jogador", methods=["POST"])
+def ping_jogador():
+    nome = request.form.get("nome")
+    papel = request.form.get("papel")
+    time_jogador = request.form.get("time")
+
+    if not nome:
+        return ("", 204)
+
+    jogadores_online[nome] = {
+        "papel": papel,
+        "time": time_jogador,
+        "last_seen": time.time()
+    }
+
+    if papel == "detetive" and nome not in detetives_pontos:
+        detetives_pontos[nome] = 0
+
+    return ("", 204)
+
+
+@app.route("/jogadores_data")
+def jogadores_data():
+    agora = time.time()
+
+    # remove quem ficou mais de 15s sem responder
+    offline = [
+        nome for nome, dados in jogadores_online.items()
+        if agora - dados["last_seen"] > 15
+    ]
+
+    for nome in offline:
+        jogadores_online.pop(nome, None)
+
+    espioes_online = []
+    detetives_online = []
+
+    for nome, dados in jogadores_online.items():
+        if dados["papel"] == "espiao":
+            espioes_online.append({
+                "nome": nome,
+                "time": dados["time"]
+            })
+
+        elif dados["papel"] == "detetive":
+            detetives_online.append({
+                "nome": nome,
+                "time": dados["time"],
+                "pontos": detetives_pontos.get(nome, 0)
+            })
+
+    return jsonify({
+        "espioes": espioes_online,
+        "detetives": detetives_online
     })
 
 # =========================
