@@ -305,8 +305,9 @@ HTML_JOGO = """
 
 <div class="container">
 
-    <div>
+    <div class="board-area">
         <h2>🎯 Tabuleiro</h2>
+
         <div class="grid">
             {% for i in range(25) %}
             <div class="card-container" onclick="revelarCarta({{i}})">
@@ -323,20 +324,21 @@ HTML_JOGO = """
             {% endfor %}
         </div>
 
-    <div class="turno-timer-box">
-        <h2 id="turno"></h2>
+        <div class="turno-timer-box">
+            <h2 id="turno"></h2>
 
-        <div class="timer-card">
-            <div class="timer-circle">
-                <span id="timerIcon">⏱️</span>
-                <strong id="timer">--</strong>
-            </div>
+            <div class="timer-card">
+                <div class="timer-circle">
+                    <span id="timerIcon">⏱️</span>
+                    <strong id="timer">--</strong>
+                </div>
 
-            <div class="timer-info">
-                <span id="timerStatus">Aguardando dica...</span>
+                <div class="timer-info">
+                    <span id="timerStatus">Aguardando dica...</span>
 
-                <div class="timer-bar">
-                    <div id="timerProgress" class="timer-progress"></div>
+                    <div class="timer-bar">
+                        <div id="timerProgress" class="timer-progress"></div>
+                    </div>
                 </div>
             </div>
         </div>

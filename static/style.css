@@ -1613,3 +1613,50 @@ body.body-turno-vermelho #turno {
         font-size: 18px;
     }
 }
+
+/* =========================
+   CORREÇÃO LAYOUT TABULEIRO + CHAT
+========================= */
+
+.container {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    gap: 56px !important;
+}
+
+.board-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.chat {
+    margin-top: 42px !important;
+    width: 360px !important;
+    max-width: 360px !important;
+}
+
+.players-panel {
+    margin-top: 18px;
+}
+
+/* Só no celular empilha */
+@media (max-width: 900px) {
+    .container {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 18px !important;
+    }
+
+    .chat {
+        width: 96vw !important;
+        max-width: 430px !important;
+        margin-top: 0 !important;
+    }
+
+    .board-area {
+        width: 100%;
+    }
+}
